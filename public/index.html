@@ -6,8 +6,18 @@
 <title>Suno Music Studio</title>
 <meta name="description" content="Generate songs, lyrics and instrumentals with AI.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+<script>
+  // Apply the saved theme before first paint to avoid a flash.
+  (function () {
+    var t = "system";
+    try { t = localStorage.getItem("suno-studio-theme") || "system"; } catch (e) {}
+    document.documentElement.setAttribute("data-theme", t);
+  })();
+</script>
 <style>
+  /* Themes: dark (default tokens), white, light, and system (follows the OS). */
   :root {
+    color-scheme: dark;
     --bg: #0d0f14;
     --panel: #161a22;
     --panel-2: #1d222c;
@@ -20,12 +30,38 @@
     --err: #f87171;
     --radius: 14px;
   }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f6f5f2; --panel: #fffdf9; --panel-2: #f1efea; --border: #e0ddd5;
+    --text: #1b1d22; --muted: #666d78; --accent: #e8531b; --accent-2: #d9822b;
+    --ok: #16a34a; --err: #dc2626;
+  }
+  :root[data-theme="white"] {
+    color-scheme: light;
+    --bg: #ffffff; --panel: #ffffff; --panel-2: #f5f5f7; --border: #e4e4e9;
+    --text: #111114; --muted: #6b6b75; --accent: #e8531b; --accent-2: #d9822b;
+    --ok: #16a34a; --err: #dc2626;
+  }
   @media (prefers-color-scheme: light) {
-    :root {
-      --bg: #f6f5f2; --panel: #ffffff; --panel-2: #f1efea; --border: #e0ddd5;
+    :root[data-theme="system"] {
+      color-scheme: light;
+      --bg: #f6f5f2; --panel: #fffdf9; --panel-2: #f1efea; --border: #e0ddd5;
       --text: #1b1d22; --muted: #666d78; --accent: #e8531b; --accent-2: #d9822b;
+      --ok: #16a34a; --err: #dc2626;
     }
   }
+  :root[data-theme="white"] .card, :root[data-theme="white"] .pill { box-shadow: 0 1px 2px rgba(17,17,20,.04); }
+  .header-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+  .welcome { margin: 0 0 20px; }
+  .welcome h1 { margin: 0; font-size: clamp(26px, 5vw, 36px); line-height: 1.15;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .welcome p { margin: 4px 0 0; color: var(--muted); }
+  .theme-seg { display: inline-flex; background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 3px; gap: 2px; }
+  .theme-seg button { border: 0; background: transparent; color: var(--muted); border-radius: 999px; padding: 5px 10px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .theme-seg button:hover { color: var(--text); }
+  .theme-seg button.on { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+  .theme-seg button:focus-visible { outline: 2px solid var(--accent); }
+  @media (max-width: 520px) { .theme-seg .lbl { display: none; } .theme-seg button { padding: 5px 9px; font-size: 14px; } }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
   body {
@@ -107,11 +143,22 @@
 <div class="wrap">
   <header>
     <div class="brand"><div class="logo">♪</div> Suno Music Studio</div>
-    <div class="row" style="flex:none">
+    <div class="header-tools">
+      <div class="theme-seg" role="radiogroup" aria-label="Theme">
+        <button type="button" role="radio" data-theme-opt="dark" title="Dark">🌙<span class="lbl"> Dark</span></button>
+        <button type="button" role="radio" data-theme-opt="white" title="White">⬜<span class="lbl"> White</span></button>
+        <button type="button" role="radio" data-theme-opt="light" title="Light">☀️<span class="lbl"> Light</span></button>
+        <button type="button" role="radio" data-theme-opt="system" title="System">💻<span class="lbl"> System</span></button>
+      </div>
       <span class="pill">Credits: <b id="credits">—</b></span>
       <button type="button" class="ghost" id="keyBtn">🔑 API key</button>
     </div>
   </header>
+
+  <section class="welcome">
+    <h1>Hey girl! 👋</h1>
+    <p>Welcome back to the studio. What are we making today?</p>
+  </section>
 
   <div class="grid">
     <!-- ============ CREATE ============ -->
@@ -768,6 +815,21 @@
       $("#keyMsg").textContent = "⚠️ " + e.message;
     }
   };
+
+  // ---------- Theme ----------
+  const THEMES = ["dark", "white", "light", "system"];
+  function applyTheme(t) {
+    if (!THEMES.includes(t)) t = "system";
+    document.documentElement.setAttribute("data-theme", t);
+    $$("[data-theme-opt]").forEach((b) => {
+      const on = b.dataset.themeOpt === t;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-checked", String(on));
+    });
+    try { localStorage.setItem("suno-studio-theme", t); } catch {}
+  }
+  $$("[data-theme-opt]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.themeOpt)));
+  applyTheme(document.documentElement.getAttribute("data-theme"));
 
   // ---------- Init ----------
   setKey(apiKey, (() => { try { return Boolean(localStorage.getItem(KEY_STORE)); } catch { return false; } })());
