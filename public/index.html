@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suno Music Studio</title>
+<meta name="description" content="Generate songs, lyrics and instrumentals with AI.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --panel: #161a22;
+    --panel-2: #1d222c;
+    --border: #2a303c;
+    --text: #e8ebf1;
+    --muted: #9099a8;
+    --accent: #ff7a45;
+    --accent-2: #ffb86b;
+    --ok: #4ade80;
+    --err: #f87171;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f5f2; --panel: #ffffff; --panel-2: #f1efea; --border: #e0ddd5;
+      --text: #1b1d22; --muted: #666d78; --accent: #e8531b; --accent-2: #d9822b;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; }
+  .brand .logo { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; font-size: 18px; }
+  .pill { background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px; font-size: 13px; color: var(--muted); }
+  .pill b { color: var(--text); }
+  .grid { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; }
+  h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+  .hint { font-weight: 400; color: var(--muted); font-size: 12px; }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; font: inherit;
+  }
+  textarea { resize: vertical; min-height: 90px; }
+  textarea.lyrics { min-height: 200px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: transparent; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .row > * { flex: 1; }
+  .between { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .counter { font-size: 12px; color: var(--muted); text-align: right; margin-top: 4px; }
+  .counter.over { color: var(--err); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 3px; }
+  .seg button { border: 0; background: transparent; color: var(--muted); padding: 8px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; }
+  .seg button.on { background: var(--panel); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .switch { display: flex; align-items: center; gap: 10px; margin-top: 14px; cursor: pointer; font-weight: 600; font-size: 13px; }
+  .switch input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { border: 1px solid var(--border); background: var(--panel-2); color: var(--muted); border-radius: 999px; padding: 4px 10px; font-size: 12px; cursor: pointer; }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+  button.primary, button.ghost {
+    border-radius: 10px; padding: 11px 16px; font: inherit; font-weight: 700; cursor: pointer; border: 1px solid transparent;
+  }
+  button.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; width: 100%; margin-top: 18px; font-size: 16px; }
+  button.primary:disabled { opacity: .55; cursor: progress; }
+  button.ghost { background: var(--panel-2); color: var(--text); border-color: var(--border); font-weight: 600; font-size: 13px; padding: 7px 12px; }
+  button.ghost:hover { border-color: var(--accent); }
+  details { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 10px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--muted); }
+  .hidden { display: none !important; }
+  .status { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); margin-bottom: 14px; font-size: 14px; }
+  .status.err { border-color: var(--err); color: var(--err); }
+  .spinner { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--border); border-top-color: var(--accent); animation: spin .8s linear infinite; flex: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .steps { display: flex; gap: 6px; margin-left: auto; }
+  .steps span { width: 28px; height: 5px; border-radius: 4px; background: var(--border); }
+  .steps span.done { background: var(--accent); }
+  .tracks { display: grid; gap: 14px; }
+  .track { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+  .track img { width: 96px; height: 96px; object-fit: cover; border-radius: 10px; background: var(--border); }
+  .track h3 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+  .meta { color: var(--muted); font-size: 12px; margin: 2px 0 8px; overflow-wrap: anywhere; }
+  .track audio { width: 100%; height: 36px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .actions a { text-decoration: none; }
+  .track pre { grid-column: 1 / -1; white-space: pre-wrap; font-size: 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin: 0; max-height: 240px; overflow: auto; }
+  @media (max-width: 480px) { .track { grid-template-columns: 64px minmax(0,1fr); } .track img { width: 64px; height: 64px; } }
+  .empty { text-align: center; color: var(--muted); padding: 40px 12px; }
+  .empty .big { font-size: 40px; }
+  .section-gap { margin-top: 20px; }
+  dialog { border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); color: var(--text); width: min(520px, calc(100vw - 32px)); padding: 18px; }
+  dialog::backdrop { background: rgba(0,0,0,.55); }
+  .lyric-option { border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-top: 10px; background: var(--panel-2); }
+  .lyric-option pre { white-space: pre-wrap; font-size: 12px; max-height: 180px; overflow: auto; margin: 6px 0; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 50; max-width: calc(100vw - 32px); }
+  footer { margin-top: 32px; text-align: center; color: var(--muted); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="logo">♪</div> Suno Music Studio</div>
+    <div class="row" style="flex:none">
+      <span class="pill">Credits: <b id="credits">—</b></span>
+      <button type="button" class="ghost" id="keyBtn">🔑 API key</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- ============ CREATE ============ -->
+    <form class="card" id="form" autocomplete="off">
+      <h2>Create</h2>
+      <div class="seg" role="tablist">
+        <button type="button" data-mode="simple" class="on">Simple</button>
+        <button type="button" data-mode="custom">Custom</button>
+      </div>
+
+      <!-- Simple mode -->
+      <div id="simpleFields">
+        <label for="desc">Song description <span class="hint">— describe the vibe, genre, topic</span></label>
+        <textarea id="desc" maxlength="500" placeholder="An upbeat summer pop song about road-tripping with friends along the Florida coast"></textarea>
+        <div class="counter" data-for="desc"></div>
+        <div class="chips" id="ideaChips"></div>
+      </div>
+
+      <!-- Custom mode -->
+      <div id="customFields" class="hidden">
+        <label for="title">Title</label>
+        <input type="text" id="title" maxlength="80" placeholder="Midnight Drive">
+        <label for="style">Style of music <span class="hint">— genres, instruments, mood</span></label>
+        <input type="text" id="style" placeholder="synthwave, retro, 80s, dreamy female vocals">
+        <div class="counter" data-for="style"></div>
+        <div class="chips" id="styleChips"></div>
+        <div id="lyricsWrap">
+          <div class="between" style="margin-top:14px">
+            <label for="lyrics" style="margin:0">Lyrics</label>
+            <button type="button" class="ghost" id="aiLyricsBtn">✨ Write with AI</button>
+          </div>
+          <textarea id="lyrics" class="lyrics" style="margin-top:6px" placeholder="[Verse]&#10;Headlights on an empty road...&#10;&#10;[Chorus]&#10;..."></textarea>
+          <div class="counter" data-for="lyrics"></div>
+        </div>
+      </div>
+
+      <label class="switch"><input type="checkbox" id="instrumental"> Instrumental (no vocals)</label>
+
+      <label for="model">Model</label>
+      <select id="model">
+        <option value="V5">V5 — best quality, fastest</option>
+        <option value="V4_5PLUS">V4.5+ — richer sound, up to 8 min</option>
+        <option value="V4_5" selected>V4.5 — smart prompts, up to 8 min</option>
+        <option value="V4">V4 — improved vocals, up to 4 min</option>
+        <option value="V3_5">V3.5 — solid structure, up to 4 min</option>
+      </select>
+
+      <details id="advanced">
+        <summary>Advanced options</summary>
+        <label for="negativeTags">Exclude styles <span class="hint">— e.g. heavy metal, screaming</span></label>
+        <input type="text" id="negativeTags" placeholder="Leave blank for none">
+        <label for="vocalGender">Vocal gender</label>
+        <select id="vocalGender">
+          <option value="">Auto</option>
+          <option value="f">Female</option>
+          <option value="m">Male</option>
+        </select>
+        <div class="row">
+          <div>
+            <label for="styleWeight">Style weight</label>
+            <input type="number" id="styleWeight" min="0" max="1" step="0.05" placeholder="Auto">
+          </div>
+          <div>
+            <label for="weirdness">Weirdness</label>
+            <input type="number" id="weirdness" min="0" max="1" step="0.05" placeholder="Auto">
+          </div>
+        </div>
+        <p class="hint" style="margin:8px 0 0">Weights run from 0 to 1. Leave blank to let the model decide.</p>
+      </details>
+
+      <button class="primary" id="goBtn" type="submit">🎵 Generate music</button>
+      <p class="hint" style="margin:10px 0 0; text-align:center">Each request makes two versions. Songs usually take 1–3 minutes.</p>
+    </form>
+
+    <!-- ============ RESULTS / LIBRARY ============ -->
+    <div>
+      <div class="card">
+        <div class="between"><h2 style="margin:0">Now generating</h2></div>
+        <div id="statusBox" class="hidden section-gap"></div>
+        <div id="current" class="tracks section-gap">
+          <div class="empty"><div class="big">🎧</div>Your new songs appear here. You can play them while they're still being made.</div>
+        </div>
+      </div>
+
+      <div class="card section-gap">
+        <div class="between">
+          <h2 style="margin:0">Library</h2>
+          <button class="ghost hidden" id="clearLib" type="button">Clear</button>
+        </div>
+        <p class="hint" style="margin:6px 0 0">Saved in this browser. Suno keeps audio files for about 15 days, so download the ones you want to keep.</p>
+        <div id="library" class="tracks section-gap"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Powered by the Suno API · <a href="https://docs.sunoapi.org" target="_blank" rel="noopener" style="color:inherit">docs.sunoapi.org</a></footer>
+</div>
+
+<!-- API key dialog -->
+<dialog id="keyDialog">
+  <h2>Your Suno API key</h2>
+  <p class="hint" style="margin:0">You need a key from <a href="https://sunoapi.org/api-key" target="_blank" rel="noopener" style="color:var(--accent)">sunoapi.org/api-key</a>. It stays in this browser and is only sent to api.sunoapi.org.</p>
+  <label for="apiKey">API key</label>
+  <div class="row">
+    <input type="password" id="apiKey" placeholder="Paste your key" autocomplete="off" spellcheck="false">
+    <button type="button" class="ghost" id="keyShow" style="flex:none">Show</button>
+  </div>
+  <label class="switch"><input type="checkbox" id="keyRemember" checked> Remember on this device</label>
+  <div id="keyMsg" class="hint" style="margin-top:8px"></div>
+  <div class="row" style="margin-top:14px">
+    <button type="button" class="ghost" id="keyForget">Forget key</button>
+    <button type="button" class="primary" id="keySave" style="margin:0">Save &amp; test</button>
+  </div>
+</dialog>
+
+<!-- AI lyrics dialog -->
+<dialog id="lyricsDialog">
+  <h2>Write lyrics with AI</h2>
+  <label for="lyricsPrompt">What should the song be about?</label>
+  <textarea id="lyricsPrompt" maxlength="200" placeholder="A heartfelt song about graduating college and saying goodbye to friends"></textarea>
+  <div class="counter" data-for="lyricsPrompt"></div>
+  <div id="lyricsResults"></div>
+  <div class="row" style="margin-top:14px">
+    <button type="button" class="ghost" id="lyricsCancel">Close</button>
+    <button type="button" class="primary" id="lyricsGo" style="margin:0">Generate lyrics</button>
+  </div>
+</dialog>
+
+<!-- Extend dialog -->
+<dialog id="extendDialog">
+  <h2>Extend track</h2>
+  <p class="hint" id="extendInfo" style="margin:0"></p>
+  <label for="continueAt">Continue from (seconds)</label>
+  <input type="number" id="continueAt" min="1" step="1">
+  <label class="switch"><input type="checkbox" id="extendCustom"> Use custom lyrics / style for the extension</label>
+  <div id="extendCustomFields" class="hidden">
+    <label for="extTitle">Title</label>
+    <input type="text" id="extTitle" maxlength="80">
+    <label for="extStyle">Style</label>
+    <input type="text" id="extStyle">
+    <label for="extPrompt">Lyrics for the new section</label>
+    <textarea id="extPrompt" class="lyrics" style="min-height:120px"></textarea>
+  </div>
+  <div class="row" style="margin-top:14px">
+    <button type="button" class="ghost" id="extendCancel">Cancel</button>
+    <button type="button" class="primary" id="extendGo" style="margin:0">Extend</button>
+  </div>
+</dialog>
+
+<script>
+(() => {
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+
+  // ---------- Limits from the Suno API docs ----------
+  const LIMITS = {
+    simple: 500,
+    title: 80,
+    legacy: { prompt: 3000, style: 200 },   // V3_5, V4
+    modern: { prompt: 5000, style: 1000 },  // V4_5, V4_5PLUS, V5
+  };
+  const isModern = (m) => !["V3_5", "V4"].includes(m);
+  const limitsFor = (m) => (isModern(m) ? LIMITS.modern : LIMITS.legacy);
+
+  const POLL_MS = 5000;
+  const POLL_TIMEOUT_MS = 10 * 60 * 1000;
+  const LIB_KEY = "suno-studio-library-v1";
+
+  const IDEAS = [
+    "Chill lo-fi hip hop beat for late-night studying",
+    "Epic orchestral trailer music with rising tension",
+    "Upbeat country song about a Friday night bonfire",
+    "Smooth jazz ballad about rainy city streets",
+    "High-energy EDM anthem for a summer festival",
+    "Acoustic indie folk song about moving to a new town",
+  ];
+  const STYLES = ["pop", "hip hop", "lo-fi", "rock", "EDM", "R&B", "country", "jazz", "cinematic", "acoustic", "latin", "synthwave"];
+
+  let mode = "simple";
+  let busy = false;
+
+  // ---------- Helpers ----------
+  function toast(msg, ms = 3200) {
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), ms);
+  }
+
+  // ---------- API key (entered by the user, kept in this browser) ----------
+  const KEY_STORE = "suno-studio-api-key";
+  let apiKey = "";
+  try { apiKey = localStorage.getItem(KEY_STORE) || sessionStorage.getItem(KEY_STORE) || ""; } catch {}
+
+  function setKey(k, remember) {
+    apiKey = k;
+    try {
+      localStorage.removeItem(KEY_STORE);
+      sessionStorage.removeItem(KEY_STORE);
+      if (k) (remember ? localStorage : sessionStorage).setItem(KEY_STORE, k);
+    } catch {}
+    $("#keyBtn").textContent = k ? "🔑 Key saved" : "🔑 Add API key";
+  }
+
+  // ---------- Suno API (called directly from the browser) ----------
+  const SUNO_BASE = "https://api.sunoapi.org/api/v1";
+  // Suno requires a callback URL. The app polls for results, so this only has to be a valid URL.
+  const CALLBACK_URL = /^https?:/.test(location.origin) && !/localhost|127\.0\.0\.1/.test(location.hostname)
+    ? `${location.origin}/` : "https://example.com/suno-callback";
+
+  const ROUTES = {
+    credits: "/generate/credit",
+    generate: "/generate",
+    extend: "/generate/extend",
+    status: "/generate/record-info",
+    lyrics: "/lyrics",
+    "lyrics-status": "/lyrics/record-info",
+  };
+
+  async function api(path, opts = {}) {
+    if (!apiKey) {
+      openKeyDialog();
+      throw new Error("Add your Suno API key first.");
+    }
+    const [name, query] = path.split("?");
+    const url = SUNO_BASE + ROUTES[name] + (query ? `?${query}` : "");
+    const body = opts.body ? { ...opts.body, callBackUrl: CALLBACK_URL } : undefined;
+    let res;
+    try {
+      res = await fetch(url, {
+        method: body ? "POST" : "GET",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", Accept: "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch {
+      throw new Error("Couldn't reach api.sunoapi.org. Check your connection.");
+    }
+    let data;
+    try { data = await res.json(); } catch { throw new Error(`Server error (${res.status})`); }
+    if (res.status === 401 || data.code === 401) throw new Error("Your API key was rejected. Check it under 🔑 API key.");
+    if (!res.ok || (data.code && data.code !== 200)) {
+      throw new Error(data.msg || `Request failed (${res.status})`);
+    }
+    return data.data;
+  }
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  const fmtTime = (s) => {
+    if (!s && s !== 0) return "";
+    s = Math.round(s);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  };
+
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function loadLib() {
+    try { return JSON.parse(localStorage.getItem(LIB_KEY)) || []; } catch { return []; }
+  }
+  function saveLib(list) {
+    try { localStorage.setItem(LIB_KEY, JSON.stringify(list.slice(0, 100))); } catch {}
+  }
+
+  // ---------- Credits ----------
+  async function refreshCredits() {
+    if (!apiKey) { $("#credits").textContent = "—"; return; }
+    try {
+      const c = await api("credits");
+      $("#credits").textContent = typeof c === "number" ? c.toLocaleString() : String(c);
+    } catch (e) {
+      $("#credits").textContent = "—";
+      $("#credits").title = e.message;
+    }
+  }
+
+  // ---------- Form UI ----------
+  function setMode(m) {
+    mode = m;
+    $$(".seg button").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+    $("#simpleFields").classList.toggle("hidden", m !== "simple");
+    $("#customFields").classList.toggle("hidden", m !== "custom");
+    syncInstrumental();
+    updateCounters();
+  }
+
+  function syncInstrumental() {
+    const inst = $("#instrumental").checked;
+    $("#lyricsWrap").classList.toggle("hidden", inst);
+    $("#vocalGender").disabled = inst;
+  }
+
+  function updateCounters() {
+    const lim = limitsFor($("#model").value);
+    const map = { desc: LIMITS.simple, style: lim.style, lyrics: lim.prompt, lyricsPrompt: 200 };
+    $$(".counter").forEach((c) => {
+      const id = c.dataset.for;
+      const len = $("#" + id).value.length;
+      c.textContent = `${len.toLocaleString()} / ${map[id].toLocaleString()}`;
+      c.classList.toggle("over", len > map[id]);
+    });
+  }
+
+  $$(".seg button").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  $("#instrumental").addEventListener("change", syncInstrumental);
+  $("#model").addEventListener("change", updateCounters);
+  ["desc", "style", "lyrics", "lyricsPrompt"].forEach((id) => $("#" + id).addEventListener("input", updateCounters));
+
+  IDEAS.forEach((idea) => {
+    const c = document.createElement("button");
+    c.type = "button"; c.className = "chip"; c.textContent = idea;
+    c.onclick = () => { $("#desc").value = idea; updateCounters(); };
+    $("#ideaChips").appendChild(c);
+  });
+  STYLES.forEach((s) => {
+    const c = document.createElement("button");
+    c.type = "button"; c.className = "chip"; c.textContent = "+ " + s;
+    c.onclick = () => {
+      const cur = $("#style").value.trim();
+      $("#style").value = cur ? `${cur.replace(/,\s*$/, "")}, ${s}` : s;
+      updateCounters();
+    };
+    $("#styleChips").appendChild(c);
+  });
+
+  // ---------- Build request ----------
+  function buildPayload() {
+    const model = $("#model").value;
+    const lim = limitsFor(model);
+    const instrumental = $("#instrumental").checked;
+    const p = { model, instrumental, customMode: mode === "custom" };
+
+    if (mode === "simple") {
+      const desc = $("#desc").value.trim();
+      if (!desc) throw new Error("Describe the song you want.");
+      if (desc.length > LIMITS.simple) throw new Error(`Description must be ${LIMITS.simple} characters or fewer.`);
+      p.prompt = desc;
+    } else {
+      p.title = $("#title").value.trim();
+      p.style = $("#style").value.trim();
+      if (!p.title) throw new Error("Add a title.");
+      if (!p.style) throw new Error("Add a music style.");
+      if (p.style.length > lim.style) throw new Error(`Style must be ${lim.style} characters or fewer for this model.`);
+      if (!instrumental) {
+        p.prompt = $("#lyrics").value.trim();
+        if (!p.prompt) throw new Error("Add lyrics, use “Write with AI”, or turn on Instrumental.");
+        if (p.prompt.length > lim.prompt) throw new Error(`Lyrics must be ${lim.prompt} characters or fewer for this model.`);
+      }
+    }
+
+    const neg = $("#negativeTags").value.trim();
+    if (neg) p.negativeTags = neg;
+    if (!instrumental && $("#vocalGender").value) p.vocalGender = $("#vocalGender").value;
+    const sw = $("#styleWeight").value, wd = $("#weirdness").value;
+    if (sw !== "") p.styleWeight = clamp01(sw);
+    if (wd !== "") p.weirdnessConstraint = clamp01(wd);
+    return p;
+  }
+  const clamp01 = (v) => Math.min(1, Math.max(0, Number(v)));
+
+  // ---------- Status ----------
+  const STEP = { PENDING: 1, TEXT_SUCCESS: 2, FIRST_SUCCESS: 3, SUCCESS: 4 };
+  const STATUS_TEXT = {
+    PENDING: "Queued — warming up the band…",
+    TEXT_SUCCESS: "Lyrics ready — recording the first take…",
+    FIRST_SUCCESS: "First track done — finishing the second…",
+    SUCCESS: "Done! Your songs are ready.",
+  };
+  const FAIL = {
+    CREATE_TASK_FAILED: "Couldn't create the task.",
+    GENERATE_AUDIO_FAILED: "Audio generation failed.",
+    CALLBACK_EXCEPTION: "Generation failed.",
+    SENSITIVE_WORD_ERROR: "Your prompt contains blocked words or references an artist. Try rewording it.",
+  };
+
+  function showStatus(text, step = 0, error = false) {
+    const box = $("#statusBox");
+    box.classList.remove("hidden");
+    box.className = "status section-gap" + (error ? " err" : "");
+    const done = step >= 4 || error;
+    box.innerHTML = `${done ? (error ? "⚠️" : "✅") : '<div class="spinner"></div>'}
+      <div>${esc(text)}</div>
+      ${error ? "" : `<div class="steps">${[1, 2, 3, 4].map((i) => `<span class="${i <= step ? "done" : ""}"></span>`).join("")}</div>`}`;
+  }
+
+  // ---------- Track rendering ----------
+  function trackCard(t, { inLibrary = false } = {}) {
+    const el = document.createElement("div");
+    el.className = "track";
+    const src = t.audioUrl || t.streamAudioUrl || "";
+    const ready = Boolean(t.audioUrl);
+    el.innerHTML = `
+      <img src="${esc(t.imageUrl || "")}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+      <div>
+        <h3>${esc(t.title || "Untitled")}</h3>
+        <div class="meta">${esc([t.tags, fmtTime(t.duration), t.model, t.createdAt ? new Date(t.createdAt).toLocaleString() : ""].filter(Boolean).join(" · "))}${!ready && src ? " · streaming preview" : ""}</div>
+        ${src ? `<audio controls preload="none" src="${esc(src)}"></audio>` : '<div class="meta">Recording…</div>'}
+        <div class="actions"></div>
+      </div>`;
+    const actions = $(".actions", el);
+    if (ready) {
+      const a = document.createElement("a");
+      a.href = t.audioUrl; a.target = "_blank"; a.rel = "noopener"; a.download = `${t.title || "track"}.mp3`;
+      a.innerHTML = '<button type="button" class="ghost">⬇ Download MP3</button>';
+      actions.appendChild(a);
+      actions.appendChild(btn("➕ Extend", () => openExtend(t)));
+    }
+    if (t.prompt) {
+      actions.appendChild(btn("📝 Lyrics", () => {
+        const pre = $("pre", el);
+        if (pre) return pre.remove();
+        const p = document.createElement("pre");
+        p.textContent = t.prompt;
+        el.appendChild(p);
+      }));
+      actions.appendChild(btn("♻ Reuse", () => reuse(t)));
+    }
+    if (inLibrary) {
+      actions.appendChild(btn("🗑", () => {
+        saveLib(loadLib().filter((x) => x.id !== t.id));
+        renderLibrary();
+      }));
+    }
+    return el;
+  }
+  function btn(label, fn) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "ghost"; b.textContent = label; b.onclick = fn;
+    return b;
+  }
+
+  function reuse(t) {
+    setMode("custom");
+    $("#title").value = t.title || "";
+    $("#style").value = t.tags || "";
+    $("#lyrics").value = t.prompt || "";
+    $("#instrumental").checked = false;
+    syncInstrumental();
+    updateCounters();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast("Loaded into the Custom form — tweak it and generate again.");
+  }
+
+  function renderCurrent(tracks) {
+    const box = $("#current");
+    box.innerHTML = "";
+    tracks.forEach((t) => box.appendChild(trackCard(t)));
+  }
+
+  function renderLibrary() {
+    const lib = loadLib();
+    const box = $("#library");
+    box.innerHTML = "";
+    $("#clearLib").classList.toggle("hidden", !lib.length);
+    if (!lib.length) {
+      box.innerHTML = '<div class="empty">No saved songs yet.</div>';
+      return;
+    }
+    lib.forEach((t) => box.appendChild(trackCard(t, { inLibrary: true })));
+  }
+  $("#clearLib").onclick = () => {
+    if (confirm("Remove every song from your library in this browser?")) { saveLib([]); renderLibrary(); }
+  };
+
+  function normalize(d, model) {
+    return {
+      id: d.id,
+      title: d.title,
+      tags: d.tags,
+      prompt: d.prompt,
+      audioUrl: d.audioUrl || d.sourceAudioUrl || "",
+      streamAudioUrl: d.streamAudioUrl || d.sourceStreamAudioUrl || "",
+      imageUrl: d.imageUrl || d.sourceImageUrl || "",
+      duration: d.duration,
+      model: model || d.modelName,
+      createdAt: d.createTime || Date.now(),
+    };
+  }
+
+  // ---------- Generation flow ----------
+  async function runTask(startFn, model) {
+    if (busy) return;
+    busy = true;
+    $("#goBtn").disabled = true;
+    $("#goBtn").textContent = "Generating…";
+    renderCurrent([]);
+    showStatus("Sending your request…", 0);
+
+    try {
+      const started = await startFn();
+      const taskId = started && started.taskId;
+      if (!taskId) throw new Error("The API didn't return a task ID.");
+      showStatus(STATUS_TEXT.PENDING, 1);
+
+      const t0 = Date.now();
+      while (Date.now() - t0 < POLL_TIMEOUT_MS) {
+        await sleep(POLL_MS);
+        let info;
+        try { info = await api(`status?taskId=${encodeURIComponent(taskId)}`); }
+        catch (e) { continue; } // transient network error; keep polling
+        const status = info && info.status;
+        if (FAIL[status]) throw new Error(info.errorMessage || FAIL[status]);
+
+        const tracks = ((info.response && info.response.sunoData) || []).map((d) => normalize(d, model));
+        if (tracks.length) renderCurrent(tracks);
+        showStatus(STATUS_TEXT[status] || "Working…", STEP[status] || 1);
+
+        if (status === "SUCCESS") {
+          const lib = loadLib().filter((x) => !tracks.some((t) => t.id === x.id));
+          saveLib([...tracks, ...lib]);
+          renderLibrary();
+          refreshCredits();
+          toast("🎉 Your songs are ready!");
+          return;
+        }
+      }
+      throw new Error("This is taking longer than expected. Check back later — the song may still finish.");
+    } catch (e) {
+      showStatus(e.message || String(e), 0, true);
+      if (!$("#current").children.length) {
+        $("#current").innerHTML = '<div class="empty">Nothing generated. Adjust your prompt and try again.</div>';
+      }
+    } finally {
+      busy = false;
+      $("#goBtn").disabled = false;
+      $("#goBtn").textContent = "🎵 Generate music";
+    }
+  }
+
+  $("#form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    let payload;
+    try { payload = buildPayload(); } catch (err) { return toast(err.message); }
+    runTask(() => api("generate", { body: payload }), payload.model);
+  });
+
+  // ---------- AI lyrics ----------
+  const lyricsDialog = $("#lyricsDialog");
+  $("#aiLyricsBtn").onclick = () => {
+    $("#lyricsPrompt").value = $("#title").value ? `A song called "${$("#title").value}"` : "";
+    $("#lyricsResults").innerHTML = "";
+    updateCounters();
+    lyricsDialog.showModal();
+  };
+  $("#lyricsCancel").onclick = () => lyricsDialog.close();
+  $("#lyricsGo").onclick = async () => {
+    const prompt = $("#lyricsPrompt").value.trim();
+    if (!prompt) return toast("Say what the song should be about.");
+    if (prompt.length > 200) return toast("Keep the lyrics prompt to 200 characters or fewer.");
+    const go = $("#lyricsGo");
+    const out = $("#lyricsResults");
+    go.disabled = true; go.textContent = "Writing…";
+    out.innerHTML = '<div class="status section-gap"><div class="spinner"></div><div>Writing lyrics, about 30 seconds…</div></div>';
+    try {
+      const { taskId } = await api("lyrics", { body: { prompt } });
+      const t0 = Date.now();
+      let options = null;
+      while (Date.now() - t0 < 3 * 60 * 1000) {
+        await sleep(3000);
+        let info;
+        try { info = await api(`lyrics-status?taskId=${encodeURIComponent(taskId)}`); } catch { continue; }
+        if (FAIL[info.status]) throw new Error(info.errorMessage || FAIL[info.status]);
+        if (info.status === "SUCCESS") { options = (info.response && info.response.data) || []; break; }
+      }
+      if (!options) throw new Error("Lyrics timed out. Try again.");
+      options = options.filter((o) => o.text);
+      if (!options.length) throw new Error("No lyrics came back. Try a different prompt.");
+      out.innerHTML = "";
+      options.forEach((o, i) => {
+        const d = document.createElement("div");
+        d.className = "lyric-option";
+        d.innerHTML = `<div class="between"><b>${esc(o.title || `Option ${i + 1}`)}</b></div><pre>${esc(o.text)}</pre>`;
+        d.querySelector(".between").appendChild(btn("Use these lyrics", () => {
+          $("#lyrics").value = o.text;
+          if (!$("#title").value && o.title) $("#title").value = o.title;
+          updateCounters();
+          lyricsDialog.close();
+        }));
+        out.appendChild(d);
+      });
+      refreshCredits();
+    } catch (e) {
+      out.innerHTML = `<div class="status err section-gap">⚠️ <div>${esc(e.message)}</div></div>`;
+    } finally {
+      go.disabled = false; go.textContent = "Generate lyrics";
+    }
+  };
+
+  // ---------- Extend ----------
+  const extendDialog = $("#extendDialog");
+  let extendTarget = null;
+  $("#extendCustom").onchange = () => $("#extendCustomFields").classList.toggle("hidden", !$("#extendCustom").checked);
+  function openExtend(t) {
+    if (busy) return toast("Wait for the current song to finish.");
+    extendTarget = t;
+    $("#extendInfo").textContent = `“${t.title || "Untitled"}” · ${fmtTime(t.duration)} long`;
+    $("#continueAt").value = Math.max(1, Math.floor((t.duration || 60) - 10));
+    $("#continueAt").max = Math.floor(t.duration || 480);
+    $("#extendCustom").checked = false;
+    $("#extendCustomFields").classList.add("hidden");
+    $("#extTitle").value = t.title ? `${t.title} (Extended)` : "";
+    $("#extStyle").value = t.tags || "";
+    $("#extPrompt").value = "";
+    extendDialog.showModal();
+  }
+  $("#extendCancel").onclick = () => extendDialog.close();
+  $("#extendGo").onclick = () => {
+    const t = extendTarget;
+    const at = Number($("#continueAt").value);
+    if (!(at > 0) || (t.duration && at >= t.duration)) return toast("Pick a start time inside the track.");
+    const model = ["V3_5", "V4", "V4_5", "V4_5PLUS", "V5"].includes(t.model) ? t.model : "V4_5";
+    const body = { audioId: t.id, continueAt: at, model, defaultParamFlag: $("#extendCustom").checked };
+    if (body.defaultParamFlag) {
+      body.title = $("#extTitle").value.trim();
+      body.style = $("#extStyle").value.trim();
+      body.prompt = $("#extPrompt").value.trim();
+      if (!body.title || !body.style || !body.prompt) return toast("Fill in title, style and lyrics, or turn off custom.");
+    }
+    extendDialog.close();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    runTask(() => api("extend", { body }), model);
+  };
+
+  // ---------- Key dialog ----------
+  const keyDialog = $("#keyDialog");
+  function openKeyDialog() {
+    $("#apiKey").value = apiKey;
+    $("#apiKey").type = "password";
+    $("#keyShow").textContent = "Show";
+    $("#keyMsg").textContent = "";
+    if (!keyDialog.open) keyDialog.showModal();
+  }
+  $("#keyBtn").onclick = openKeyDialog;
+  $("#keyShow").onclick = () => {
+    const hidden = $("#apiKey").type === "password";
+    $("#apiKey").type = hidden ? "text" : "password";
+    $("#keyShow").textContent = hidden ? "Hide" : "Show";
+  };
+  $("#keyForget").onclick = () => { setKey("", false); $("#apiKey").value = ""; refreshCredits(); keyDialog.close(); toast("API key removed."); };
+  $("#keySave").onclick = async () => {
+    const k = $("#apiKey").value.trim();
+    if (!k) { $("#keyMsg").textContent = "Paste a key first."; return; }
+    const prev = apiKey;
+    apiKey = k;
+    $("#keyMsg").textContent = "Checking…";
+    try {
+      const c = await api("credits");
+      setKey(k, $("#keyRemember").checked);
+      $("#credits").textContent = typeof c === "number" ? c.toLocaleString() : String(c);
+      keyDialog.close();
+      toast("✅ Key works. You're ready to make music.");
+    } catch (e) {
+      apiKey = prev;
+      $("#keyMsg").textContent = "⚠️ " + e.message;
+    }
+  };
+
+  // ---------- Init ----------
+  setKey(apiKey, (() => { try { return Boolean(localStorage.getItem(KEY_STORE)); } catch { return false; } })());
+  if (!apiKey) openKeyDialog();
+  setMode("simple");
+  renderLibrary();
+  refreshCredits();
+})();
+</script>
+</body>
+</html>
