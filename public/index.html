@@ -53,6 +53,19 @@
   :root[data-theme="white"] .card, :root[data-theme="white"] .pill { box-shadow: 0 1px 2px rgba(17,17,20,.04); }
   .header-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
   .welcome { margin: 0 0 20px; }
+  /* Signed-out vs signed-in screens */
+  body:not(.signed-in) .app-only { display: none !important; }
+  body.signed-in .auth-only { display: none !important; }
+  body.auth-loading .auth-only { visibility: hidden; }
+  .auth-card { max-width: 420px; margin: 8px auto 0; }
+  .auth-card h1 { margin: 0 0 4px; font-size: 26px; }
+  .auth-card .seg { margin-top: 16px; }
+  .auth-msg { margin-top: 12px; font-size: 13px; padding: 10px 12px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); }
+  .auth-msg.err { color: var(--err); border-color: var(--err); }
+  .auth-msg.ok { color: var(--ok); border-color: var(--ok); }
+  .linkbtn { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .linkbtn:hover { text-decoration: underline; }
+  .user-pill { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .welcome h1 { margin: 0; font-size: clamp(26px, 5vw, 36px); line-height: 1.15;
     background: linear-gradient(135deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .welcome p { margin: 4px 0 0; color: var(--muted); }
@@ -81,7 +94,7 @@
   h2 { font-size: 15px; margin: 0 0 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
   label { display: block; font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
   .hint { font-weight: 400; color: var(--muted); font-size: 12px; }
-  input[type=text], input[type=number], textarea, select {
+  input[type=text], input[type=number], input[type=email], input[type=password], textarea, select {
     width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
     border-radius: 10px; padding: 10px 12px; font: inherit;
   }
@@ -139,7 +152,7 @@
   footer { margin-top: 32px; text-align: center; color: var(--muted); font-size: 12px; }
 </style>
 </head>
-<body>
+<body class="auth-loading">
 <div class="wrap">
   <header>
     <div class="brand"><div class="logo">♪</div> Suno Music Studio</div>
@@ -150,17 +163,48 @@
         <button type="button" role="radio" data-theme-opt="light" title="Light">☀️<span class="lbl"> Light</span></button>
         <button type="button" role="radio" data-theme-opt="system" title="System">💻<span class="lbl"> System</span></button>
       </div>
-      <span class="pill">Credits: <b id="credits">—</b></span>
-      <button type="button" class="ghost" id="keyBtn">🔑 API key</button>
+      <span class="pill app-only">Credits: <b id="credits">—</b></span>
+      <button type="button" class="ghost app-only" id="keyBtn">🔑 API key</button>
+      <span class="pill user-pill app-only" id="userEmail" title=""></span>
+      <button type="button" class="ghost app-only" id="signOutBtn">Sign out</button>
     </div>
   </header>
 
-  <section class="welcome">
+  <!-- ============ SIGN IN ============ -->
+  <section class="auth-only">
+    <form class="card auth-card" id="authForm" autocomplete="on" novalidate>
+      <h1 id="authTitle">Hey girl! 👋</h1>
+      <p class="hint" id="authSub" style="margin:0; font-size:14px">Sign in to get into the studio.</p>
+
+      <div class="seg" id="authTabs">
+        <button type="button" data-auth="signin" class="on">Sign in</button>
+        <button type="button" data-auth="signup">Create account</button>
+      </div>
+
+      <div id="authEmailWrap">
+        <label for="authEmail">Email</label>
+        <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com" required>
+      </div>
+      <div id="authPassWrap">
+        <label for="authPass" id="authLabelPass">Password</label>
+        <input type="password" id="authPass" autocomplete="current-password" minlength="6" placeholder="At least 6 characters" required>
+      </div>
+
+      <button class="primary" id="authGo" type="submit">Sign in</button>
+      <div class="between" style="margin-top:12px">
+        <button type="button" class="linkbtn" id="forgotBtn">Forgot password?</button>
+        <button type="button" class="linkbtn hidden" id="backBtn">← Back to sign in</button>
+      </div>
+      <div id="authMsg" class="auth-msg hidden" role="status"></div>
+    </form>
+  </section>
+
+  <section class="welcome app-only">
     <h1>Hey girl! 👋</h1>
     <p>Welcome back to the studio. What are we making today?</p>
   </section>
 
-  <div class="grid">
+  <div class="grid app-only">
     <!-- ============ CREATE ============ -->
     <form class="card" id="form" autocomplete="off">
       <h2>Create</h2>
@@ -260,7 +304,7 @@
 <!-- API key dialog -->
 <dialog id="keyDialog">
   <h2>Your Suno API key</h2>
-  <p class="hint" style="margin:0">You need a key from <a href="https://sunoapi.org/api-key" target="_blank" rel="noopener" style="color:var(--accent)">sunoapi.org/api-key</a>. It stays in this browser and is only sent to api.sunoapi.org.</p>
+  <p class="hint" style="margin:0">You need a key from <a href="https://sunoapi.org/api-key" target="_blank" rel="noopener" style="color:var(--accent)">sunoapi.org/api-key</a>. It stays in this browser and is only used to talk to Suno. Signing out removes it.</p>
   <label for="apiKey">API key</label>
   <div class="row">
     <input type="password" id="apiKey" placeholder="Paste your key" autocomplete="off" spellcheck="false">
@@ -368,7 +412,11 @@
   const SUNO_BASE = "https://api.sunoapi.org/api/v1";
   // Suno requires a callback URL. The app polls for results, so this only has to be a valid URL.
   const CALLBACK_URL = /^https?:/.test(location.origin) && !/localhost|127\.0\.0\.1/.test(location.hostname)
-    ? `${location.origin}/` : "https://example.com/suno-callback";
+    ? `${location.origin}/api/callback` : "https://example.com/suno-callback";
+  // The site's own pass-through (netlify/functions/suno.mjs), used only if direct calls are blocked.
+  const PROXY_BASE = /^https?:/.test(location.origin) ? `${location.origin}/api/suno` : "";
+  let useProxy = false;
+  try { useProxy = sessionStorage.getItem("suno-studio-proxy") === "1"; } catch {}
 
   const ROUTES = {
     credits: "/generate/credit",
@@ -385,21 +433,39 @@
       throw new Error("Add your Suno API key first.");
     }
     const [name, query] = path.split("?");
-    const url = SUNO_BASE + ROUTES[name] + (query ? `?${query}` : "");
+    const route = ROUTES[name] + (query ? `?${query}` : "");
     const body = opts.body ? { ...opts.body, callBackUrl: CALLBACK_URL } : undefined;
+    const init = {
+      method: body ? "POST" : "GET",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", Accept: "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    };
     let res;
     try {
-      res = await fetch(url, {
-        method: body ? "POST" : "GET",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", Accept: "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
-      });
+      res = await fetch((useProxy ? PROXY_BASE : SUNO_BASE) + route, init);
     } catch {
-      throw new Error("Couldn't reach api.sunoapi.org. Check your connection.");
+      // Direct browser calls can be blocked (CORS). Retry once through the site's own pass-through.
+      if (useProxy || !PROXY_BASE) throw new Error("Couldn't reach api.sunoapi.org. Check your connection.");
+      try {
+        res = await fetch(PROXY_BASE + route, init);
+        useProxy = true;
+        try { sessionStorage.setItem("suno-studio-proxy", "1"); } catch {}
+      } catch {
+        throw new Error("Couldn't reach api.sunoapi.org. Check your connection.");
+      }
     }
     let data;
     try { data = await res.json(); } catch { throw new Error(`Server error (${res.status})`); }
-    if (res.status === 401 || data.code === 401) throw new Error("Your API key was rejected. Check it under 🔑 API key.");
+    if (res.status === 401 || data.code === 401) {
+      const err = new Error("Your API key was rejected. Check it under 🔑 API key.");
+      err.fatal = true;
+      throw err;
+    }
+    if (data.code === 429 || data.code === 430) {
+      const err = new Error(data.msg || "You're out of credits. Top up at sunoapi.org.");
+      err.fatal = true;
+      throw err;
+    }
     if (!res.ok || (data.code && data.code !== 200)) {
       throw new Error(data.msg || `Request failed (${res.status})`);
     }
@@ -639,34 +705,58 @@
   }
 
   // ---------- Generation flow ----------
-  async function runTask(startFn, model) {
+  // The task being generated is saved so a page refresh can pick it back up.
+  const PENDING_KEY = "suno-studio-pending-v1";
+  function savePending(p) {
+    try { p ? localStorage.setItem(PENDING_KEY, JSON.stringify(p)) : localStorage.removeItem(PENDING_KEY); } catch {}
+  }
+  function loadPending() {
+    try { return JSON.parse(localStorage.getItem(PENDING_KEY)); } catch { return null; }
+  }
+
+  async function runTask(startFn, model, resume = null) {
     if (busy) return;
     busy = true;
     $("#goBtn").disabled = true;
     $("#goBtn").textContent = "Generating…";
     renderCurrent([]);
-    showStatus("Sending your request…", 0);
+    showStatus(resume ? "Picking up where you left off…" : "Sending your request…", 0);
 
     try {
-      const started = await startFn();
-      const taskId = started && started.taskId;
-      if (!taskId) throw new Error("The API didn't return a task ID.");
-      showStatus(STATUS_TEXT.PENDING, 1);
+      let taskId, t0;
+      if (resume) {
+        ({ taskId, startedAt: t0 } = resume);
+      } else {
+        const started = await startFn();
+        taskId = started && started.taskId;
+        if (!taskId) throw new Error("The API didn't return a task ID.");
+        t0 = Date.now();
+        savePending({ taskId, model, startedAt: t0 });
+        showStatus(STATUS_TEXT.PENDING, 1);
+      }
 
-      const t0 = Date.now();
+      let misses = 0;
       while (Date.now() - t0 < POLL_TIMEOUT_MS) {
         await sleep(POLL_MS);
         let info;
-        try { info = await api(`status?taskId=${encodeURIComponent(taskId)}`); }
-        catch (e) { continue; } // transient network error; keep polling
+        try {
+          info = await api(`status?taskId=${encodeURIComponent(taskId)}`);
+          misses = 0;
+        } catch (e) {
+          if (e.fatal || ++misses >= 6) throw e; // bad key, or ~30s of failures in a row
+          continue; // brief network hiccup; keep polling
+        }
         const status = info && info.status;
-        if (FAIL[status]) throw new Error(info.errorMessage || FAIL[status]);
-
         const tracks = ((info.response && info.response.sunoData) || []).map((d) => normalize(d, model));
         if (tracks.length) renderCurrent(tracks);
-        showStatus(STATUS_TEXT[status] || "Working…", STEP[status] || 1);
 
-        if (status === "SUCCESS") {
+        // A callback hiccup doesn't matter if the audio was made.
+        const done = status === "SUCCESS" || (status === "CALLBACK_EXCEPTION" && tracks.some((t) => t.audioUrl));
+        if (!done && FAIL[status]) throw new Error(info.errorMessage || FAIL[status]);
+        showStatus(STATUS_TEXT[done ? "SUCCESS" : status] || "Working…", done ? 4 : STEP[status] || 1);
+
+        if (done) {
+          savePending(null);
           const lib = loadLib().filter((x) => !tracks.some((t) => t.id === x.id));
           saveLib([...tracks, ...lib]);
           renderLibrary();
@@ -675,8 +765,9 @@
           return;
         }
       }
-      throw new Error("This is taking longer than expected. Check back later — the song may still finish.");
+      throw new Error("This is taking longer than expected. The song may still finish; check your sunoapi.org dashboard.");
     } catch (e) {
+      savePending(null);
       showStatus(e.message || String(e), 0, true);
       if (!$("#current").children.length) {
         $("#current").innerHTML = '<div class="empty">Nothing generated. Adjust your prompt and try again.</div>';
@@ -831,12 +922,187 @@
   $$("[data-theme-opt]").forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.themeOpt)));
   applyTheme(document.documentElement.getAttribute("data-theme"));
 
-  // ---------- Init ----------
+  // ---------- Init (runs once, after sign-in) ----------
+  let started = false;
+  window.startStudio = () => {
+    if (started) return;
+    started = true;
   setKey(apiKey, (() => { try { return Boolean(localStorage.getItem(KEY_STORE)); } catch { return false; } })());
   if (!apiKey) openKeyDialog();
   setMode("simple");
   renderLibrary();
   refreshCredits();
+  const pending = loadPending();
+  if (pending && pending.taskId && apiKey && Date.now() - pending.startedAt < POLL_TIMEOUT_MS) {
+    runTask(null, pending.model, pending);
+  } else {
+    savePending(null);
+  }
+  };
+})();
+</script>
+<script src="vendor/supabase-2.117.3.js"></script>
+<script>
+// ---------- Email login (Supabase Auth) ----------
+(() => {
+  // Public values: the publishable key is designed to ship in browser code.
+  const SUPABASE_URL = "https://kukglvtcsiovqvrahgmi.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_dpVBilRfoPWpTzsJVtSIcw_PxJVXUVx";
+
+  const $ = (s) => document.querySelector(s);
+  const body = document.body;
+  let view = "signin"; // signin | signup | forgot | reset
+  // A password-reset email link lands here with type=recovery; read it before Supabase clears the URL.
+  const arrivingFromReset = /(^|[#&?])type=recovery(&|$)/.test(location.hash + "&" + location.search.slice(1));
+
+  if (!window.supabase) {
+    body.classList.remove("auth-loading");
+    showMsg("Couldn't load the sign-in service. Refresh the page to try again.", "err");
+    return;
+  }
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+  });
+  // Where Supabase email links (confirm, reset) send people back to.
+  const REDIRECT = location.origin + location.pathname;
+
+  function showMsg(text, kind = "") {
+    const m = $("#authMsg");
+    m.textContent = text;
+    m.className = "auth-msg" + (kind ? " " + kind : "");
+    m.classList.toggle("hidden", !text);
+  }
+
+  function setView(v) {
+    view = v;
+    showMsg("");
+    document.querySelectorAll("#authTabs button").forEach((b) => b.classList.toggle("on", b.dataset.auth === v));
+    $("#authTabs").classList.toggle("hidden", v === "forgot" || v === "reset");
+    $("#authEmailWrap").classList.toggle("hidden", v === "reset");
+    $("#authPassWrap").classList.toggle("hidden", v === "forgot");
+    $("#forgotBtn").classList.toggle("hidden", v !== "signin");
+    $("#backBtn").classList.toggle("hidden", v === "signin" || v === "signup");
+    $("#authPass").autocomplete = v === "signin" ? "current-password" : "new-password";
+    $("#authPass").placeholder = v === "reset" ? "New password (6+ characters)" : "At least 6 characters";
+    $("#authLabelPass") && ($("#authLabelPass").textContent = v === "reset" ? "New password" : "Password");
+    const copy = {
+      signin: ["Hey girl! 👋", "Sign in to get into the studio.", "Sign in"],
+      signup: ["Hey girl! 👋", "Create your account. It only takes a second.", "Create account"],
+      forgot: ["Reset your password", "We'll email you a link to set a new one.", "Send reset link"],
+      reset: ["Set a new password", "Choose a new password for your account.", "Save new password"],
+    }[v];
+    $("#authTitle").textContent = copy[0];
+    $("#authSub").textContent = copy[1];
+    $("#authGo").textContent = copy[2];
+  }
+
+  function friendly(err) {
+    const m = (err && err.message) || String(err);
+    if (/invalid login credentials/i.test(m)) return "That email and password don't match. Try again or reset your password.";
+    if (/email not confirmed/i.test(m)) return "Confirm your email first. Check your inbox (and spam) for the link.";
+    if (/already registered|already exists/i.test(m)) return "There's already an account with that email. Sign in instead.";
+    if (/rate limit|too many/i.test(m)) return "Too many attempts. Wait a minute and try again.";
+    if (/password/i.test(m) && /6|short|weak/i.test(m)) return "Use a password with at least 6 characters.";
+    if (/fetch|network/i.test(m)) return "Couldn't reach the sign-in service. Check your connection.";
+    return m;
+  }
+
+  function onSession(session) {
+    body.classList.remove("auth-loading");
+    if (session && view !== "reset") {
+      body.classList.add("signed-in");
+      $("#userEmail").textContent = session.user.email;
+      $("#userEmail").title = session.user.email;
+      window.startStudio && window.startStudio();
+    } else {
+      body.classList.remove("signed-in");
+    }
+  }
+
+  document.querySelectorAll("#authTabs button").forEach((b) => (b.onclick = () => setView(b.dataset.auth)));
+  $("#forgotBtn").onclick = () => setView("forgot");
+  $("#backBtn").onclick = async () => {
+    if (view === "reset") await sb.auth.signOut(); // leave the half-finished reset cleanly
+    setView("signin");
+  };
+  $("#signOutBtn").onclick = async () => {
+    await sb.auth.signOut();
+    // Don't leave this person's Suno key behind on a shared computer.
+    try {
+      ["suno-studio-api-key", "suno-studio-pending-v1"].forEach((k) => { localStorage.removeItem(k); sessionStorage.removeItem(k); });
+    } catch {}
+    setView("signin");
+    location.reload(); // clear in-memory app state
+  };
+
+  $("#authForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("#authEmail").value.trim();
+    const password = $("#authPass").value;
+    if (view !== "reset" && !/^\S+@\S+\.\S+$/.test(email)) return showMsg("Enter a valid email address.", "err");
+    if (view !== "forgot" && password.length < 6) return showMsg("Use a password with at least 6 characters.", "err");
+
+    const go = $("#authGo");
+    const label = go.textContent;
+    go.disabled = true;
+    go.textContent = "One sec…";
+    showMsg("");
+    try {
+      if (view === "signin") {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else if (view === "signup") {
+        const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: REDIRECT } });
+        if (error) throw error;
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          throw new Error("already registered");
+        }
+        if (!data.session) {
+          setView("signin");
+          $("#authEmail").value = email;
+          showMsg(`Almost there! We sent a confirmation link to ${email}. Click it, then sign in.`, "ok");
+        }
+      } else if (view === "forgot") {
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: REDIRECT });
+        if (error) throw error;
+        showMsg(`If ${email} has an account, a reset link is on its way. Check your inbox.`, "ok");
+      } else if (view === "reset") {
+        const { error } = await sb.auth.updateUser({ password });
+        if (error) throw error;
+        $("#authPass").value = "";
+        setView("signin");
+        const { data } = await sb.auth.getSession();
+        onSession(data.session);
+      }
+    } catch (err) {
+      showMsg(friendly(err), "err");
+    } finally {
+      go.disabled = false;
+      if (go.textContent === "One sec…") go.textContent = label;
+    }
+  });
+
+  sb.auth.onAuthStateChange((event, session) => {
+    if (event === "PASSWORD_RECOVERY") {
+      setView("reset");
+      document.querySelectorAll("dialog[open]").forEach((d) => d.close());
+      body.classList.remove("signed-in");
+      body.classList.remove("auth-loading");
+      return;
+    }
+    // Defer so Supabase finishes its own work before the app starts.
+    setTimeout(() => onSession(session), 0);
+  });
+
+  setView(arrivingFromReset ? "reset" : "signin");
+  // An expired or used email link comes back with an error in the URL.
+  const hashErr = new URLSearchParams(location.hash.slice(1)).get("error_description")
+    || new URLSearchParams(location.search).get("error_description");
+  if (hashErr) {
+    showMsg(`${hashErr.replace(/\+/g, " ")}. Request a new link and try again.`, "err");
+    history.replaceState(null, "", location.pathname);
+  }
+  sb.auth.getSession().then(({ data }) => onSession(data.session));
 })();
 </script>
 </body>

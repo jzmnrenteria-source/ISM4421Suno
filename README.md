@@ -1,28 +1,47 @@
 # ISM4421Suno — Suno Music Studio
 
-A one-page AI music generator built on the [Suno API](https://docs.sunoapi.org), ready to deploy on Netlify.
+A one-page AI music generator built on the [Suno API](https://docs.sunoapi.org), with email login through Supabase. Ready to deploy on Netlify.
+
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/jzmnrenteria-source/ISM4421Suno)
 
 ## Features
 
+- **Email login** (Supabase Auth): sign in, create an account, confirm by email, forgot/reset password, sign out.
 - **Simple mode**: describe a song and get two versions.
-- **Custom mode**: set your own title, style tags and lyrics.
-- **AI lyrics writer**: generate lyric options from a short idea.
-- **Instrumental toggle**, **model picker** (V3.5 → V5) and **advanced options** (excluded styles, vocal gender, style weight, weirdness).
-- **Live progress**: play tracks while they're still being made.
+- **Custom mode**: your own title, style tags and lyrics.
+- **AI lyrics writer**, **instrumental toggle**, **model picker** (V3.5 → V5) and **advanced options**.
+- **Live progress** with playback while tracks are still being made. A song in progress continues after a page refresh.
 - **Download**, **extend**, **view lyrics** and **reuse** a track's settings.
 - **Library** saved in the browser, plus a **credit balance** in the header.
+- **Themes:** Dark, White, Light and System.
 
-## API key
+## Setup (one time)
 
-Each user enters their own Suno API key (get one at https://sunoapi.org/api-key) with the 🔑 button.
-The key is stored only in that user's browser and sent only to `api.sunoapi.org`. Nothing is stored on the server.
+1. **Netlify:** click the Deploy button above, or go to **Add new site → Import an existing project**, pick this repo and the `main` branch, then deploy. There are no build settings or environment variables to set.
+2. **Supabase:** open **Authentication → URL Configuration** for the project and set:
+   - **Site URL** = your Netlify address, for example `https://your-site.netlify.app`
+   - **Redirect URLs** → add `https://your-site.netlify.app/**`
 
-## Deploy to Netlify
+   Without this, confirmation and password-reset emails send people to `localhost`.
+3. Open the site, create an account, click the link in the confirmation email, sign in, and paste your Suno API key ([get one here](https://sunoapi.org/api-key)).
 
-1. **Add new site → Import an existing project**, then pick this repo and the `main` branch.
-2. `netlify.toml` already sets the publish directory to `public`. There's no build command and no environment variables.
-3. Deploy, open the site and paste your API key.
+## How it's put together
+
+```
+public/index.html                  the whole front end (HTML/CSS/JS, no build step)
+public/vendor/supabase-2.117.3.js  Supabase client library (bundled, no CDN needed)
+netlify/functions/suno.mjs         tiny pass-through + callback endpoint (no config)
+netlify.toml                       Netlify config
+```
+
+- **Login:** Supabase Auth with email and password. The Supabase URL and *publishable* key in `index.html` are meant to be public.
+- **Suno API key:** each user pastes their own. It's stored in their browser and removed when they sign out.
+- **Suno calls:** the browser calls `api.sunoapi.org` directly. If that's blocked (CORS), the app automatically retries through `/api/suno/*` on your own site, which forwards the user's key and stores nothing. `/api/callback` receives Suno's "song finished" notification.
 
 ## Run locally
 
-Serve the `public` folder with any static server, for example `npx serve public`.
+```bash
+npx netlify-cli dev     # serves public/ and the function at http://localhost:8888
+```
+
+For local email links, add `http://localhost:8888/**` to Supabase's Redirect URLs.
