@@ -1,12 +1,13 @@
 # ISM4421Suno — Suno Music Studio
 
-A one-page AI music generator built on the [Suno API](https://docs.sunoapi.org), with email login through Supabase. Ready to deploy on Netlify.
+A one-page AI music generator built on the [Suno API](https://docs.sunoapi.org), with email and Google login through Supabase. Ready to deploy on Netlify.
 
 [![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/jzmnrenteria-source/ISM4421Suno)
 
 ## Features
 
 - **Email login** (Supabase Auth): sign in, create an account, confirm by email, forgot/reset password, sign out.
+- **Continue with Google** (Supabase OAuth). Once signed in, the header shows the person's name and profile picture from their Supabase `user_metadata`.
 - **Simple mode**: describe a song and get two versions.
 - **Custom mode**: your own title, style tags and lyrics.
 - **AI lyrics writer**, **instrumental toggle**, **model picker** (V3.5 → V5) and **advanced options**.
@@ -34,7 +35,7 @@ netlify/functions/suno.mjs         tiny pass-through + callback endpoint (no con
 netlify.toml                       Netlify config
 ```
 
-- **Login:** Supabase Auth with email and password. The Supabase URL and *publishable* key in `index.html` are meant to be public.
+- **Login:** Supabase Auth with email and password, or Google. For Google, enable the Google provider in Supabase (Authentication → Providers) with `https://kukglvtcsiovqvrahgmi.supabase.co/auth/v1/callback` as the redirect URI in Google Cloud, and add the site URL under Authentication → URL Configuration. The Supabase URL and *publishable* key in `index.html` are meant to be public.
 - **Suno API key:** each user pastes their own. It's stored in their browser and removed when they sign out.
 - **Suno calls:** the browser calls `api.sunoapi.org` directly. If that's blocked (CORS), the app automatically retries through `/api/suno/*` on your own site, which forwards the user's key and stores nothing. `/api/callback` receives Suno's "song finished" notification.
 
